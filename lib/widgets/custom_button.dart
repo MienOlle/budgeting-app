@@ -13,13 +13,15 @@ class PurpleAuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? buttonText = Theme.of(context).textTheme.headlineMedium;
+    final TextStyle? buttonText = Theme.of(context).textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.w500,
+    );
 
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.accent,
-        fixedSize: const Size(270, 64),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.0),
         ),

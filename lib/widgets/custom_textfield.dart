@@ -19,7 +19,7 @@ class WhiteInputTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextStyle? inputStyle = Theme.of(context).textTheme.displayMedium;
     final TextStyle? hintStyle = inputStyle?.copyWith(
-      color: inputStyle.color?.withValues(alpha: 0.75),
+      color: inputStyle.color?.withValues(alpha: 0.5),
     );
     
     return TextField(
