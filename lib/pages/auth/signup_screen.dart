@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:logger/logger.dart';
 import 'package:budgeting_app/theme/app_theme.dart';
 import 'package:budgeting_app/widgets/custom_button.dart';
 import 'package:budgeting_app/widgets/custom_textfield.dart';
+import 'package:budgeting_app/services/auth_service.dart';
+import 'package:budgeting_app/pages/auth/login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -19,6 +23,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isPasswordHidden = true;
   bool _isConfirmPasswordHidden = true;
 
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -27,6 +34,70 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  void _handleSignUp() async{
+
+    if (_emailController.text.isEmpty ||
+        _usernameController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all the fields')),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try{
+      User user = await _authService.signUpWithEmailAndPassword(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      logger.i('Sign up successful! User ID: ${user.uid}');
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      if(e.code == 'weak-password'){
+        errorMessage = 'The password provided is too weak.';
+      }else if( e.code == 'email-already-in-use'){
+        errorMessage = 'An account already exists for that email.';
+      }else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is not valid.';
+      } else {
+        errorMessage = 'An unknown error occurred. Please try again.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally{
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  var logger = Logger();
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +113,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Text(
                 'Sign up',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontSize: 72,
+                  fontSize: 60,
                   letterSpacing: 0,
                 ),
               ),
@@ -122,15 +193,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     PurpleAuthButton(
-                      text: 'Create Account',
-                      onPressed: () {
-                        // TODO: Connect to Firebase Authentication
-                        print('Email: ${_emailController.text}');
-                        print('Username: ${_usernameController.text}');
-                      },
+                      onPressed: _isLoading ? null : _handleSignUp,
+                      child: _isLoading 
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: AppTheme.text,
+                              strokeWidth: 2,
+                            ),
+                          ) 
+                        : Text(
+                            'Create Account',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                     ),
 
                     const SizedBox(height: 16),
@@ -144,8 +225,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            // TODO: Navigate to Login Screen
-                            print('Login tapped!');
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                            );
+
+                            logger.i('Login tapped!');
                           },
                           child: Text(
                             'Login',
